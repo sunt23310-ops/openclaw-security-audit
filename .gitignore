@@ -1,0 +1,4 @@
+# History
+*.html
+*.json
+!.gitkeep
