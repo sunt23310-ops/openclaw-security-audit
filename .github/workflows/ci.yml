@@ -35,13 +35,16 @@ jobs:
       - name: Run BATS tests
         run: bats tests/*.bats
 
-      - name: Shellcheck lint
-        run: |
-          if ! command -v shellcheck &>/dev/null; then
-            if [ "$RUNNER_OS" = "macOS" ]; then
-              brew install shellcheck
-            else
-              sudo apt-get install -y shellcheck
-            fi
-          fi
-          shellcheck -S warning lib/*.sh checks/*.sh fixes/*.sh audit.sh || true
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shellcheck (error-level — must pass)
+        run: shellcheck -S error lib/*.sh checks/*.sh fixes/*.sh audit.sh
+
+      - name: Shellcheck (warning-level — advisory)
+        run: shellcheck -S warning lib/*.sh checks/*.sh fixes/*.sh audit.sh || true

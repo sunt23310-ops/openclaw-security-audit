@@ -115,7 +115,7 @@ read_config_value() {
     local key="$1"
     if [ ! -f "$OPENCLAW_CONFIG" ]; then
         echo ""
-        return 1
+        return 0
     fi
 
     # Prefer openclaw CLI if available (handles JSON5 + $include natively)
@@ -124,100 +124,10 @@ read_config_value() {
         return
     fi
 
-    python3 - "$OPENCLAW_CONFIG" "$key" 2>/dev/null <<'PYEOF'
-import json, sys
-
-config_path = sys.argv[1]
-key_path = sys.argv[2]
-
-def parse_json5(text):
-    """Parse JSON5 with a state-machine approach for comment/string handling."""
-    result = []
-    i = 0
-    n = len(text)
-    while i < n:
-        c = text[i]
-        # String literals — pass through unchanged
-        if c in ('"', "'"):
-            quote = c
-            result.append(c)
-            i += 1
-            while i < n:
-                sc = text[i]
-                result.append(sc)
-                if sc == '\\' and i + 1 < n:
-                    i += 1
-                    result.append(text[i])
-                elif sc == quote:
-                    break
-                i += 1
-            i += 1
-            continue
-        # Line comment
-        if c == '/' and i + 1 < n and text[i + 1] == '/':
-            i += 2
-            while i < n and text[i] != '\n':
-                i += 1
-            continue
-        # Block comment
-        if c == '/' and i + 1 < n and text[i + 1] == '*':
-            i += 2
-            while i + 1 < n and not (text[i] == '*' and text[i + 1] == '/'):
-                i += 1
-            i += 2
-            continue
-        # Trailing comma before } or ]
-        if c == ',':
-            # Look ahead for optional whitespace then } or ]
-            j = i + 1
-            while j < n and text[j] in ' \t\r\n':
-                j += 1
-            if j < n and text[j] in ('}', ']'):
-                i += 1
-                continue
-        # Unquoted keys: wrap in double quotes
-        if c.isalpha() or c == '_' or c == '$':
-            # Check if this is a key (preceded by { or ,)
-            k = len(result) - 1
-            while k >= 0 and result[k] in (' ', '\t', '\r', '\n'):
-                k -= 1
-            if k >= 0 and result[k] in ('{', ','):
-                word = []
-                while i < n and (text[i].isalnum() or text[i] in ('_', '$')):
-                    word.append(text[i])
-                    i += 1
-                result.append('"')
-                result.extend(word)
-                result.append('"')
-                continue
-        result.append(c)
-        i += 1
-    return json.loads(''.join(result))
-
-try:
-    with open(config_path, 'r') as f:
-        raw = f.read()
-    # Try standard JSON first (fast path)
-    try:
-        cfg = json.loads(raw)
-    except json.JSONDecodeError:
-        cfg = parse_json5(raw)
-    keys = key_path.split('.')
-    val = cfg
-    for k in keys:
-        if isinstance(val, dict):
-            val = val.get(k)
-        else:
-            val = None
-            break
-    if val is not None:
-        if isinstance(val, (dict, list)):
-            print(json.dumps(val))
-        else:
-            print(val)
-except Exception:
-    pass
-PYEOF
+    # Use the shared json5_parser.py (single source of truth)
+    local lib_dir
+    lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    python3 "$lib_dir/json5_parser.py" "$OPENCLAW_CONFIG" "$key" 2>/dev/null || true
 }
 
 # Check if OpenClaw config exists
