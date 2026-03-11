@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install BATS
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew install bats-core
+          else
+            sudo apt-get update && sudo apt-get install -y bats
+          fi
+
+      - name: Run basic validation tests
+        run: bash tests/run-tests.sh
+
+      - name: Run BATS tests
+        run: bats tests/*.bats
+
+      - name: Shellcheck lint
+        run: |
+          if ! command -v shellcheck &>/dev/null; then
+            if [ "$RUNNER_OS" = "macOS" ]; then
+              brew install shellcheck
+            else
+              sudo apt-get install -y shellcheck
+            fi
+          fi
+          shellcheck -S warning lib/*.sh checks/*.sh fixes/*.sh audit.sh || true

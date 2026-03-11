@@ -8,6 +8,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib"
 source "$SCRIPT_DIR/../lib/common.sh"
 
 print_header "Gateway Security Fix"
@@ -30,21 +31,14 @@ fix_gateway_binding() {
         print_pass "Gateway bind set to 127.0.0.1 via openclaw CLI"
     elif has_openclaw_config; then
         # Manual JSON update
-        python3 - "$OPENCLAW_CONFIG" <<'PYEOF'
-import json, sys, re
+        python3 - "$OPENCLAW_CONFIG" "$LIB_DIR" <<'PYEOF'
+import json, sys
+sys.path.insert(0, sys.argv[2])
+from json5_parser import load_config
 
 config_path = sys.argv[1]
 
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
-
-with open(config_path, 'r') as f:
-    raw = f.read()
-
-cfg = json.loads(strip_comments(raw))
+cfg = load_config(config_path)
 if "gateway" not in cfg:
     cfg["gateway"] = {}
 cfg["gateway"]["bind"] = "127.0.0.1"
@@ -84,22 +78,15 @@ fix_gateway_token() {
         openclaw config set gateway.auth.token "$new_token" 2>/dev/null
         print_pass "New token set via openclaw CLI"
     elif has_openclaw_config; then
-        python3 - "$OPENCLAW_CONFIG" "$new_token" <<'PYEOF'
-import json, sys, re
+        python3 - "$OPENCLAW_CONFIG" "$new_token" "$LIB_DIR" <<'PYEOF'
+import json, sys
+sys.path.insert(0, sys.argv[3])
+from json5_parser import load_config
 
 config_path = sys.argv[1]
 new_token = sys.argv[2]
 
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
-
-with open(config_path, 'r') as f:
-    raw = f.read()
-
-cfg = json.loads(strip_comments(raw))
+cfg = load_config(config_path)
 if "gateway" not in cfg:
     cfg["gateway"] = {}
 if "auth" not in cfg["gateway"]:

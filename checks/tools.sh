@@ -140,17 +140,12 @@ check_tool_profiles() {
     fi
 
     local result
-    result=$(python3 - "$OPENCLAW_CONFIG" <<'PYEOF'
-import json, sys, re
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
+    result=$(python3 - "$OPENCLAW_CONFIG" "$SCRIPT_DIR/../lib" <<'PYEOF'
+import sys, os
+sys.path.insert(0, sys.argv[2])
+from json5_parser import load_config
 try:
-    with open(sys.argv[1]) as f: raw = f.read()
-    cfg = json.loads(strip_comments(raw))
-    # Check if non-main sessions have restricted tool profiles
+    cfg = load_config(sys.argv[1])
     agents = cfg.get("agents", {})
     defaults = agents.get("defaults", {})
     tools_cfg = defaults.get("tools", {})

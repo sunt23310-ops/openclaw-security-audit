@@ -106,38 +106,32 @@ run_generate_report() {
     echo ""
     read -p "Format [1/2]: " fmt
 
-    # Run full audit and capture results
     echo ""
     echo -e "${DIM}Running full audit for report...${NC}"
 
-    # Run checks and collect structured data
+    # Use structured output file to collect results cleanly
+    local tmpfile
+    tmpfile=$(mktemp)
+
     local checks=("gateway" "credentials" "channels" "tools" "network" "system")
     local categories=("Reconnaissance" "Credential Exposure" "Initial Access" "Execution" "Reconnaissance" "System Security")
 
     for i in "${!checks[@]}"; do
         local check="${checks[$i]}"
         local category="${categories[$i]}"
-        local output
-        output=$(bash "$SCRIPT_DIR/checks/${check}.sh" 2>/dev/null || true)
 
-        # Parse output lines into report entries
-        while IFS= read -r line; do
-            if echo "$line" | grep -q "\[PASS\]"; then
-                local detail
-                detail=$(echo "$line" | sed 's/.*\[PASS\] //')
-                add_report_entry "$category" "$check" "pass" "$detail"
-            elif echo "$line" | grep -q "\[FAIL\]"; then
-                detail=$(echo "$line" | sed 's/.*\[FAIL\] //')
-                add_report_entry "$category" "$check" "fail" "$detail"
-            elif echo "$line" | grep -q "\[WARN\]"; then
-                detail=$(echo "$line" | sed 's/.*\[WARN\] //')
-                add_report_entry "$category" "$check" "warn" "$detail"
-            elif echo "$line" | grep -q "\[SKIP\]"; then
-                detail=$(echo "$line" | sed 's/.*\[SKIP\] //')
-                add_report_entry "$category" "$check" "skip" "$detail"
-            fi
-        done <<< "$output"
+        # Run check with structured output enabled
+        > "$tmpfile"
+        STRUCTURED_OUTPUT_FILE="$tmpfile" bash "$SCRIPT_DIR/checks/${check}.sh" >/dev/null 2>&1 || true
+
+        # Read structured results and add to report
+        while IFS='|' read -r status detail; do
+            [ -z "$status" ] && continue
+            add_report_entry "$category" "$check" "$status" "$detail"
+        done < "$tmpfile"
     done
+
+    rm -f "$tmpfile"
 
     local report_file
     case "$fmt" in

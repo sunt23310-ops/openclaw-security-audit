@@ -8,6 +8,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib"
 source "$SCRIPT_DIR/../lib/common.sh"
 
 print_header "Channel Policy Fix"
@@ -25,16 +26,12 @@ fix_dm_policy() {
     echo ""
 
     local open_channels
-    open_channels=$(python3 - "$OPENCLAW_CONFIG" <<'PYEOF'
-import json, sys, re
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
+    open_channels=$(python3 - "$OPENCLAW_CONFIG" "$LIB_DIR" <<'PYEOF'
+import sys
+sys.path.insert(0, sys.argv[2])
+from json5_parser import load_config
 try:
-    with open(sys.argv[1]) as f: raw = f.read()
-    cfg = json.loads(strip_comments(raw))
+    cfg = load_config(sys.argv[1])
     channels = cfg.get("channels", {})
     open_ch = [n for n,c in channels.items() if isinstance(c,dict) and c.get("dmPolicy") == "open"]
     print(','.join(open_ch) if open_ch else "")
@@ -56,16 +53,12 @@ PYEOF
         return
     fi
 
-    python3 - "$OPENCLAW_CONFIG" <<'PYEOF'
-import json, sys, re
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
+    python3 - "$OPENCLAW_CONFIG" "$LIB_DIR" <<'PYEOF'
+import json, sys
+sys.path.insert(0, sys.argv[2])
+from json5_parser import load_config
 
-with open(sys.argv[1], 'r') as f: raw = f.read()
-cfg = json.loads(strip_comments(raw))
+cfg = load_config(sys.argv[1])
 
 changed = 0
 for name, ch_cfg in cfg.get("channels", {}).items():
@@ -108,16 +101,12 @@ fix_allow_from() {
         return
     fi
 
-    python3 - "$OPENCLAW_CONFIG" <<'PYEOF'
-import json, sys, re
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
+    python3 - "$OPENCLAW_CONFIG" "$LIB_DIR" <<'PYEOF'
+import json, sys
+sys.path.insert(0, sys.argv[2])
+from json5_parser import load_config
 
-with open(sys.argv[1], 'r') as f: raw = f.read()
-cfg = json.loads(strip_comments(raw))
+cfg = load_config(sys.argv[1])
 
 changed = 0
 for name, ch_cfg in cfg.get("channels", {}).items():
@@ -151,16 +140,12 @@ fix_require_mention() {
         return
     fi
 
-    python3 - "$OPENCLAW_CONFIG" <<'PYEOF'
-import json, sys, re
-def strip_comments(t):
-    t = re.sub(r'//.*?$', '', t, flags=re.MULTILINE)
-    t = re.sub(r'/\*.*?\*/', '', t, flags=re.DOTALL)
-    t = re.sub(r',\s*([}\]])', r'\1', t)
-    return t
+    python3 - "$OPENCLAW_CONFIG" "$LIB_DIR" <<'PYEOF'
+import json, sys
+sys.path.insert(0, sys.argv[2])
+from json5_parser import load_config
 
-with open(sys.argv[1], 'r') as f: raw = f.read()
-cfg = json.loads(strip_comments(raw))
+cfg = load_config(sys.argv[1])
 
 changed = 0
 for name, ch_cfg in cfg.get("channels", {}).items():
