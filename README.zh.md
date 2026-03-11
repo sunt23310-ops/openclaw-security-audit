@@ -96,6 +96,34 @@ bash fixes/channel-fix.sh        # 修复通道策略
 | 移除 allowFrom 通配符 | 移除通道配置中的 `["*"]` 条目 |
 | 启用 requireMention | 要求群组中 @提及 才响应 |
 
+## 作为 Skill 使用
+
+### OpenClaw Skill
+
+将 skill 复制到 OpenClaw workspace 中，即可使用 `/security-audit` 斜杠命令：
+
+```bash
+cp -r skills/openclaw-skill ~/.openclaw/skills/security-audit
+```
+
+然后在任意 OpenClaw 对话中输入 `/security-audit` 运行安全检查。
+
+### Claude Code Skill
+
+将 skill 复制到 Claude Code 项目或全局 skills 目录：
+
+```bash
+# 项目级别（仅当前仓库）
+mkdir -p .claude/skills/security-audit
+cp skills/claude-code-skill/SKILL.md .claude/skills/security-audit/SKILL.md
+
+# 或全局级别（所有项目可用）
+mkdir -p ~/.claude/skills/security-audit
+cp skills/claude-code-skill/SKILL.md ~/.claude/skills/security-audit/SKILL.md
+```
+
+然后在 Claude Code 中输入 `/security-audit` 调用。
+
 ## 隐私保护
 
 - **默认不会向外部发送任何数据**，除非你明确同意 IP 泄露检测

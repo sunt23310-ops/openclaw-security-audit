@@ -96,6 +96,34 @@ All fixes require explicit confirmation before applying:
 | Remove allowFrom wildcards | Removes `["*"]` entries from channel configs |
 | Enable requireMention | Requires @mention for bot to respond in groups |
 
+## Use as a Skill
+
+### OpenClaw Skill
+
+Copy the skill into your OpenClaw workspace to use `/security-audit` as a slash command:
+
+```bash
+cp -r skills/openclaw-skill ~/.openclaw/skills/security-audit
+```
+
+Then in any OpenClaw conversation, type `/security-audit` to run a security check.
+
+### Claude Code Skill
+
+Copy the skill into your Claude Code project or global skills:
+
+```bash
+# Project-level (current repo only)
+mkdir -p .claude/skills/security-audit
+cp skills/claude-code-skill/SKILL.md .claude/skills/security-audit/SKILL.md
+
+# Or global (available in all projects)
+mkdir -p ~/.claude/skills/security-audit
+cp skills/claude-code-skill/SKILL.md ~/.claude/skills/security-audit/SKILL.md
+```
+
+Then type `/security-audit` in Claude Code to invoke.
+
 ## Privacy
 
 - **No data is sent externally** unless you explicitly opt-in to IP leak detection
